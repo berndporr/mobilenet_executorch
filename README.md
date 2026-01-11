@@ -45,9 +45,24 @@ python quantise.py
 
 ## Do transfer learning
 
+![alt tag](cat.jpg)
+![alt tag](dog.jpg)
+
+It learns to classify Cats and Dogs. 
+Get the Cats and Dogs from Kaggle with:
+
+```
+python get_cats_dogs.py
+```
+
+which downloads the files into kaggle's cache.
+
+Run:
 ```
 ./transfer
 ```
+
+to learn to distingusih between cats and dogs!
 
 # Credit
 
