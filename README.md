@@ -5,6 +5,8 @@ The amazing thing with MobilenetV2 is that it consists of a feature detector whi
 
  - Feature layers: quatised, fixed parameters in executorch
  - Classifier layer: floating point, parameters learn via gradient descent in libtorch
+ 
+This is work in progress as I aim to do the learning also with executorch but for now learning in the final layer is done by libtorch.
 
 ## Install executorch
 
@@ -22,6 +24,11 @@ cd cmake-out
 make
 sudo make install
 ```
+
+## Install libtorch
+
+ - Intel architectures: Get libtorch from the PyTorch homepage. Create an environment variable CMAKE_PREFIX_PATH=/path/to/libtorch pointing to the libtorch directory.
+ - ARM Debian (Raspberry PI): just do apt install libtorch-dev and you are all set!
 
 ## Compile the transfer learning C++ code
 
