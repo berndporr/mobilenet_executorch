@@ -15,7 +15,7 @@
 
 /***
  * MobileNetV2q C++ Implementation (LibTorch & Executorch).
- * (c) 2025 Bernd Porr, GPLv3.
+ * (c) 2025 Bernd Porr, BSD3
  ***/
 
 #ifdef NDEBUG

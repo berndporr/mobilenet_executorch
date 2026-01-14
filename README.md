@@ -64,6 +64,10 @@ Run:
 
 to learn to distingusih between cats and dogs!
 
+The file `loss.dat` contains the loss:
+
+![alt tag](loss.png)
+
 # Credit
 
 Bernd Porr
