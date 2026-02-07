@@ -16,7 +16,7 @@ If the python package install eventually fails then do `pip install executorch` 
 ```
 git clone https://github.com/pytorch/executorch
 cd executorch
-git checkout v1.0.1
+git checkout v1.1.0
 source ~/venv/bin/activate
 python install_executorch.py
 cmake --preset linux -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -DEXECUTORCH_BUILD_EXTENSION_TRAINING=ON .

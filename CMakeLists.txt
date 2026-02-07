@@ -52,4 +52,5 @@ target_link_libraries(transfer ${TORCH_LIBRARIES} ${OpenCV_LIBRARIES}
     quantized_ops_lib
     kernels_util_all_deps
     cpuinfo
+    extension_named_data_map
 )
