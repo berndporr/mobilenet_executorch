@@ -19,6 +19,11 @@ cd executorch
 git checkout v1.1.0
 source ~/venv/bin/activate
 python install_executorch.py
+```
+
+Ubuntu LTS: edit `CMakeLists.txt` and change to `cmake_minimum_required(VERSION 3.28)`.
+
+```
 cmake --preset linux -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -DEXECUTORCH_BUILD_EXTENSION_TRAINING=ON .
 cd cmake-out
 make
