@@ -82,6 +82,7 @@ void progress(int epoch, int epochs, double loss, float f)
               << loss << "\t" << f << "Hz" << "\r" << std::flush;
 }
 
+// Classifier for nClasses
 struct MobileNetV2classifier : torch::nn::Module
 {
     const char *classifierModuleName = "classifer";
@@ -90,7 +91,16 @@ struct MobileNetV2classifier : torch::nn::Module
         sequ = torch::nn::Sequential(
             torch::nn::Dropout(0.2),
             torch::nn::Linear(nFeatures, nClasses));
+
         register_module(classifierModuleName, sequ);
+        for (auto &module : sequ->modules(/*include_self=*/false))
+        {
+            if (auto M = dynamic_cast<torch::nn::LinearImpl *>(module.get()))
+            {
+                torch::nn::init::normal_(M->weight, 0.0, 0.01);
+                torch::nn::init::zeros_(M->bias);
+            }
+        }
     }
     torch::nn::Sequential sequ{nullptr};
 };
@@ -114,7 +124,7 @@ int main()
 
     // Model setup
     MobileNetV2qFeatures features;
-    MobileNetV2classifier classifier(features.getNfeatures(),classes.size());
+    MobileNetV2classifier classifier(features.getNfeatures(), classes.size());
 
     // Optimizer only for classifier.
     torch::optim::Adam optimizer(classifier.sequ->parameters(), torch::optim::AdamOptions(1e-3));
@@ -139,7 +149,9 @@ int main()
             auto target = batch.target.to(device);
 
             optimizer.zero_grad();
+            // executorch feature detector (without learning and pre-trained weights)
             auto fout = features.forward(data);
+            // libtorch classifier (with learning)
             auto output = classifier.sequ->forward(fout);
             auto loss = criterion(output, target);
             loss.backward();
