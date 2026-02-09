@@ -2,7 +2,7 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 #include <filesystem>
-#include "mobilenet_v2q.h"
+#include "mobilenet_v2qfeatures.h"
 #include <iostream>
 #include <unistd.h>
 #include <pwd.h>
@@ -64,7 +64,7 @@ struct ImageFolderDataset : torch::data::Dataset<ImageFolderDataset>
         {
             throw std::runtime_error("Failed to load image: " + sample.image_path.string());
         }
-        const torch::Tensor data = MobileNetV2q::preprocess(img);
+        const torch::Tensor data = MobileNetV2qFeatures::preprocess(img);
         const torch::Tensor label = torch::tensor(sample.label, torch::kLong);
         return {data, label};
     }
@@ -81,6 +81,19 @@ void progress(int epoch, int epochs, double loss, float f)
     std::cout << "Epoch [" << epoch << "/" << epochs << "], Loss: "
               << loss << "\t" << f << "Hz" << "\r" << std::flush;
 }
+
+struct MobileNetV2classifier : torch::nn::Module
+{
+    const char *classifierModuleName = "classifer";
+    MobileNetV2classifier(int nFeatures, int nClasses)
+    {
+        sequ = torch::nn::Sequential(
+            torch::nn::Dropout(0.2),
+            torch::nn::Linear(nFeatures, nClasses));
+        register_module(classifierModuleName, sequ);
+    }
+    torch::nn::Sequential sequ{nullptr};
+};
 
 // -------------------------
 // Main training program
@@ -100,23 +113,12 @@ int main()
         torch::data::DataLoaderOptions().batch_size(batch_size));
 
     // Model setup
-    MobileNetV2q model;
-
-    model.initialize_weights();
-
-    // Replace the standard classifier by this custom one with
-    // only two categories for cats and dogs.
-    auto newClassifier = torch::nn::Sequential(
-        torch::nn::Dropout(0.2),
-        torch::nn::Linear(model.getNinputChannelsOfClassifier(), classes.size()));
-    model.replaceClassifier(newClassifier);
+    MobileNetV2qFeatures features;
+    MobileNetV2classifier classifier(features.getNfeatures(),classes.size());
 
     // Optimizer only for classifier.
-    torch::optim::Adam optimizer(model.getClassifier()->parameters(), torch::optim::AdamOptions(1e-3));
+    torch::optim::Adam optimizer(classifier.sequ->parameters(), torch::optim::AdamOptions(1e-3));
     torch::nn::CrossEntropyLoss criterion;
-
-    // Send the model to the CPU or GPU
-    model.to(device);
 
     // Logging of the loss
     std::fstream floss;
@@ -128,7 +130,7 @@ int main()
     for (int epoch = 1; epoch <= epochs; epoch++)
     {
         float cumloss = 0;
-        model.train();
+        classifier.train();
         int n = 0;
         auto start = std::chrono::high_resolution_clock::now();
         for (auto &batch : *loader)
@@ -137,13 +139,14 @@ int main()
             auto target = batch.target.to(device);
 
             optimizer.zero_grad();
-            auto output = model.forward(data);
+            auto fout = features.forward(data);
+            auto output = classifier.sequ->forward(fout);
             auto loss = criterion(output, target);
             loss.backward();
             optimizer.step();
             auto current = std::chrono::high_resolution_clock::now();
             auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(current - start);
-            f = n*1000/(float)duration.count();
+            f = n * 1000 / (float)duration.count();
             progress(epoch, epochs, loss.item<double>(), f);
             cumloss += loss.item<double>();
             n++;
