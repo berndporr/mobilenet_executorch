@@ -32,12 +32,14 @@ constexpr bool debugOutput = true;
 class MobileNetV2qFeatures : public torch::nn::Module
 {
 public:
-    /**
-     * @brief Construct a new MobileNetV2 feature detector
-    **/
-    MobileNetV2qFeatures()
+/**
+ * @brief Construct a new Mobile Net V2q Features object
+ * 
+ * @param features_pte_filename The file which contains the quantised model of the feature det.
+ */
+    MobileNetV2qFeatures(std::string features_pte_filename = "mobilenet_features_quant.pte")
     {
-        quantFeatures = std::make_shared<executorch::extension::Module>("mobilenet_features_quant.pte");
+        quantFeatures = std::make_shared<executorch::extension::Module>(features_pte_filename);
         const auto result = quantFeatures->load_forward();
         if (executorch::runtime::Error::Ok != result) {
             std::cerr << "Could not load forward(): " << (int)result << std::endl;
@@ -72,15 +74,9 @@ public:
         if (!(quantFeatures->is_loaded()))
         {
             std::cerr << "Err:" << (int)error << executorch::runtime::to_string(error) << std::endl;
-            throw "Could not load network.";
+            throw error;
         }
     }
-
-    /**
-     * @brief Name of the features submodule.
-     * This appears as part of the key in named_parametes and named_buffers.
-     */
-    static constexpr char featuresModuleName[] = "features";
 
     /**
      * @brief Performs the forward pass.
@@ -102,7 +98,7 @@ public:
         {
             std::cerr << "Fatal. No result from model: ";
             std::cerr << (int)(result.error()) << ", " << executorch::runtime::to_string(result.error()) << std::endl;
-            exit(-1);
+            throw result.error();
         }
         const auto et = result->at(0).toTensor();
         std::vector<long int> outsizes(
@@ -171,8 +167,8 @@ public:
     }
 
 private:
-    // Features output channels but can be scaled.
-    int features_output_channels = 1280;
-
+    // Features output channels
+    const int features_output_channels = 1280;
+    // the module with all the inverted residuals
     std::shared_ptr<executorch::extension::Module> quantFeatures;
 };
