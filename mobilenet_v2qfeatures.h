@@ -14,7 +14,7 @@
 #include <executorch/extension/tensor/tensor.h>
 
 /***
- * MobileNetV2q C++ Implementation (Executorch).
+ * Quantised MobileNetV2 features with pre-trained weights with Executorch
  * (c) 2025-2026 Bernd Porr, BSD3
  ***/
 
@@ -25,19 +25,16 @@ constexpr bool debugOutput = true;
 #endif
 
 /**
- * @brief Implementation of MobileNetV2 with a quanitised feature detector via executorch
+ * @brief Implementation of MobileNetV2 features with pre-trained quanitised weights
+ * 
+ * It loads the network with the pre-trained weights from "mobilenet_features_quant.pte".
  */
 class MobileNetV2qFeatures : public torch::nn::Module
 {
 public:
     /**
-     * @brief Construct a new MobileNetV2 object.
-     * If you want to load the weight files from torchvision into this class use the
-     * default values for the parameters.
-     *
-     * @param num_classes Number of classes.
-     * @param dropout Dropout probability for the dropout layer in the classifier.
-     */
+     * @brief Construct a new MobileNetV2 feature detector
+    **/
     MobileNetV2qFeatures()
     {
         quantFeatures = std::make_shared<executorch::extension::Module>("mobilenet_features_quant.pte");
@@ -48,7 +45,7 @@ public:
 
         const auto method_meta = quantFeatures->method_meta("forward");
 
-        if (method_meta.ok())
+        if (debugOutput && method_meta.ok())
         {
             std::cerr << "Num of inputs: " << (int)(method_meta->num_inputs()) << std::endl;
             const auto input_meta = method_meta->input_tensor_meta(0);
@@ -75,7 +72,7 @@ public:
         if (!(quantFeatures->is_loaded()))
         {
             std::cerr << "Err:" << (int)error << executorch::runtime::to_string(error) << std::endl;
-            exit(-1);
+            throw "Could not load network.";
         }
     }
 
