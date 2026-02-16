@@ -27,11 +27,6 @@ def load_model_features():
     model.to("cpu")
     return model
 
-def load_model_classifier():
-    model = models.mobilenet_v2(weights=MobileNet_V2_Weights.DEFAULT).classifier
-    model.to("cpu")
-    return model
-
 def print_size_of_model(model):
     torch.save(model.state_dict(), "temp.p")
     print("Size (MB):", os.path.getsize("temp.p")/1e6)

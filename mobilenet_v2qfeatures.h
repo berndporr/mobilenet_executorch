@@ -157,18 +157,11 @@ public:
     }
 
     /**
-     * @brief Gets the number of features.
-     *
-     * @return The number of features.
-     */
-    int getNfeatures() const
-    {
-        return features_output_channels;
-    }
+     * @brief Gets the number of features at the output of the classifier.
+    **/
+    static constexpr int N_OUTPUT_FEATURES = 1280;
 
 private:
-    // Features output channels
-    const int features_output_channels = 1280;
     // the module with all the inverted residuals
     std::shared_ptr<executorch::extension::Module> quantFeatures;
 };

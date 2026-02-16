@@ -124,7 +124,7 @@ int main()
 
     // Model setup
     MobileNetV2qFeatures features;
-    MobileNetV2classifier classifier(features.getNfeatures(), classes.size());
+    MobileNetV2classifier classifier(features.N_OUTPUT_FEATURES, classes.size());
 
     // Optimizer only for classifier.
     torch::optim::Adam optimizer(classifier.sequ->parameters(), torch::optim::AdamOptions(1e-3));
