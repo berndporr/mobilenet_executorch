@@ -43,6 +43,7 @@ public:
         const auto result = quantFeatures->load_forward();
         if (executorch::runtime::Error::Ok != result) {
             std::cerr << "Could not load forward(): " << (int)result << std::endl;
+            throw result;
         }
 
         const auto method_meta = quantFeatures->method_meta("forward");
