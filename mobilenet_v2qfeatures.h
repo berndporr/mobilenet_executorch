@@ -26,26 +26,20 @@ constexpr bool debugOutput = true;
 
 /**
  * @brief Implementation of MobileNetV2 features with pre-trained quanitised weights
- * 
+ *
  * It loads the network with the pre-trained weights from "mobilenet_features_quant.pte".
  */
 class MobileNetV2qFeatures : public torch::nn::Module
 {
 public:
-/**
- * @brief Construct a new Mobile Net V2q Features object
- * 
- * @param features_pte_filename The file which contains the quantised model of the feature det.
- */
+    /**
+     * @brief Construct a new Mobile Net V2q Features object
+     *
+     * @param features_pte_filename The file which contains the quantised model of the feature det.
+     */
     MobileNetV2qFeatures(std::string features_pte_filename = "mobilenet_features_quant.pte")
     {
         quantFeatures = std::make_shared<executorch::extension::Module>(features_pte_filename);
-        const auto result = quantFeatures->load_forward();
-        if (executorch::runtime::Error::Ok != result) {
-            std::cerr << "Could not load forward(): " << (int)result << std::endl;
-            throw result;
-        }
-
         const auto method_meta = quantFeatures->method_meta("forward");
 
         if (debugOutput && method_meta.ok())
@@ -54,9 +48,10 @@ public:
             const auto input_meta = method_meta->input_tensor_meta(0);
             if (input_meta.ok())
             {
-                std::cerr << "Input Scalar type (6): " << (int)(input_meta->scalar_type()) << std::endl;
+                std::cerr << "Input Scalar type: " << type_to_string(input_meta->scalar_type()) << std::endl;
                 std::cerr << "Sizes: ";
-                for(auto &s : input_meta->sizes()) std::cerr << s << " ";
+                for (auto &s : input_meta->sizes())
+                    std::cerr << s << " ";
                 std::cerr << std::endl;
             }
 
@@ -64,17 +59,25 @@ public:
             const auto output_meta = method_meta->output_tensor_meta(0);
             if (output_meta.ok())
             {
-                std::cerr << "Output Scalar type (6): " << (int)(output_meta->scalar_type()) << std::endl;
+                std::cerr << "Output Scalar type: " << type_to_string(output_meta->scalar_type()) << std::endl;
                 std::cerr << "Sizes: ";
-                for(auto &s : output_meta->sizes()) std::cerr << s << " ";
+                for (auto &s : output_meta->sizes())
+                    std::cerr << s << " ";
                 std::cerr << std::endl;
             }
+        }
+
+        executorch::runtime::Error result = quantFeatures->load_forward();
+        if (executorch::runtime::Error::Ok != result)
+        {
+            std::cerr << "load_forward() error = " << (int)result << ", " << executorch::runtime::to_string(result) << std::endl;
+            throw result;
         }
 
         executorch::runtime::Error error = quantFeatures->load();
         if (!(quantFeatures->is_loaded()))
         {
-            std::cerr << "Err:" << (int)error << executorch::runtime::to_string(error) << std::endl;
+            std::cerr << "load() error = " << (int)error << executorch::runtime::to_string(error) << std::endl;
             throw error;
         }
     }
@@ -159,10 +162,33 @@ public:
 
     /**
      * @brief Gets the number of features at the output of the classifier.
-    **/
+     **/
     static constexpr int N_OUTPUT_FEATURES = 1280;
 
 private:
     // the module with all the inverted residuals
     std::shared_ptr<executorch::extension::Module> quantFeatures;
+
+    inline const char *type_to_string(executorch::aten::ScalarType t)
+    {
+        switch (t)
+        {
+        case executorch::aten::ScalarType::Byte:
+            return "Byte";
+        case executorch::aten::ScalarType::Char:
+            return "Char";
+        case executorch::aten::ScalarType::Short:
+            return "Short";
+        case executorch::aten::ScalarType::Int:
+            return "Int";
+        case executorch::aten::ScalarType::Long:
+            return "Long";
+        case executorch::aten::ScalarType::Float:
+            return "Float";
+        case executorch::aten::ScalarType::Double:
+            return "Double";
+        default:
+            return "Unknown";
+        }
+    }
 };
