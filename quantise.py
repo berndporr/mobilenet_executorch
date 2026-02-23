@@ -15,8 +15,6 @@ from executorch.backends.xnnpack.quantizer.xnnpack_quantizer import XNNPACKQuant
 from executorch.backends.xnnpack.partition.xnnpack_partitioner import XnnpackPartitioner
 from executorch.exir import to_edge_transform_and_lower
 from torchao.quantization.pt2e.quantize_pt2e import convert_pt2e, prepare_pt2e
-train_batch_size = 32
-eval_batch_size = 32
 pte_filename_features = "mobilenet_features_quant.pte"
 
 # Specify random seed for repeatable results
@@ -37,7 +35,7 @@ def print_size_of_model(model):
     print("Size (MB):", os.path.getsize("temp.p")/1e6)
     os.remove("temp.p")
 
-def prepare_data_loaders(data_path):
+def prepare_data_loader(data_path):
     transform = transforms.Compose([
         transforms.Resize((224, 224)),     # Standard for CNNs
         transforms.ToTensor(),
@@ -48,39 +46,22 @@ def prepare_data_loaders(data_path):
     ])
 
     # Datasets
-    train_dataset = datasets.ImageFolder(
+    dataset = datasets.ImageFolder(
         root=data_path+"/train/",
         transform=transform
     )
 
-    test_dataset = datasets.ImageFolder(
-        root=data_path+"/train/",
-        transform=transform
-    )
+    sampler = torch.utils.data.RandomSampler(dataset)
 
-    train_sampler = torch.utils.data.RandomSampler(train_dataset)
-    test_sampler = torch.utils.data.SequentialSampler(test_dataset)
+    data_loader = torch.utils.data.DataLoader(
+        dataset, batch_size=1,
+        sampler=sampler)
 
-    train_data_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=train_batch_size,
-        sampler=train_sampler)
-
-    test_data_loader = torch.utils.data.DataLoader(
-        test_dataset, batch_size=eval_batch_size,
-        sampler=test_sampler)
-
-    return train_data_loader, test_data_loader
-
-def calibrate(model, data_loader):
-    with torch.no_grad():
-        for image, target in data_loader:
-            model(image)
+    return data_loader
 
 def createFeaturesFile():
     data_path = kagglehub.dataset_download("abdalnassir/the-animalist-cat-vs-dog-classification")+"/Cat vs Dog"
     print("File are here: ",data_path)
-    data_loader, data_loader_test = prepare_data_loaders(data_path)
-    example_inputs = (next(iter(data_loader))[0])
 
     float_model = load_model_features().to("cpu")
     float_model.eval()
@@ -88,18 +69,17 @@ def createFeaturesFile():
     # create another instance of the model since
     # we need to keep the original model around
     model_to_quantize = load_model_features().to("cpu")
-
     model_to_quantize.eval()
 
-    example_inputs = (torch.rand(train_batch_size, 3, 224, 224),)
-    batch_dim = torch.export.Dim("batch", min=1, max=train_batch_size)
-    dynamic_shapes={"input": {0: batch_dim}}
-    exported_model = torch.export.export(model_to_quantize, example_inputs, dynamic_shapes=dynamic_shapes).module()
+    sample_inputs = (torch.randn(1, 3, 224, 224), )
+    exported_model = torch.export.export(model_to_quantize, sample_inputs).module()
     quantizer = XNNPACKQuantizer()
     prepared_model = prepare_pt2e(exported_model, quantizer)
-    calibrate(prepared_model, data_loader_test)  # run calibration on sample data
+    data_loader = prepare_data_loader(data_path)
+    with torch.no_grad():
+        for image, _ in data_loader:
+            prepared_model(image)
     quantized_model = convert_pt2e(prepared_model)
-    print(quantized_model)
 
     # Baseline model size
     print("Size of baseline model")
@@ -108,11 +88,11 @@ def createFeaturesFile():
     # Quantized model size
     print("Size of model after quantization")
     # export again to remove unused weights
-    quantized_model = torch.export.export(quantized_model, example_inputs, dynamic_shapes=dynamic_shapes).module()
+    quantized_model = torch.export.export(quantized_model, sample_inputs).module()
     print_size_of_model(quantized_model)
 
     # capture the model to get an ExportedProgram
-    quantized_ep = torch.export.export(quantized_model, example_inputs, dynamic_shapes=dynamic_shapes)
+    quantized_ep = torch.export.export(quantized_model, sample_inputs)
 
     # Optimize for target hardware (switch backends with one line)
     program = to_edge_transform_and_lower(

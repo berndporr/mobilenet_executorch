@@ -22,7 +22,7 @@ const char loss_file[] = "loss.dat";
 const std::vector<fs::path> classes = {"Cat", "Dog"};
 
 // The batch size for training
-const int batch_size = 32;
+const int batch_size = 1;
 
 // The number of epochs
 const int epochs = 50;
@@ -119,15 +119,14 @@ int main()
     // Creates a DataLoader instance for a stateless dataset.
     // The sampler is RandomSampler so shuffling is enabled.
     auto loader = torch::data::make_data_loader(
-        ds.map(torch::data::transforms::Stack<>()),
-        torch::data::DataLoaderOptions().batch_size(batch_size));
+        ds.map(torch::data::transforms::Stack<>()));
 
     // Model setup
     MobileNetV2qFeatures features;
     MobileNetV2classifier classifier(features.N_OUTPUT_FEATURES, classes.size());
 
     // Optimizer only for classifier.
-    torch::optim::Adam optimizer(classifier.sequ->parameters(), torch::optim::AdamOptions(1e-3));
+    torch::optim::SGD optimizer(classifier.sequ->parameters(), torch::optim::SGDOptions(1e-4));
     torch::nn::CrossEntropyLoss criterion;
 
     // Logging of the loss
