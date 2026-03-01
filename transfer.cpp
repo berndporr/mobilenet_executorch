@@ -150,6 +150,10 @@ int main()
             optimizer.zero_grad();
             // executorch feature detector (without learning and pre-trained weights)
             auto fout = features.forward(data);
+            // features are in a 7x7x1280 grid and need to be collapsed to just 1280 features
+            const torch::nn::functional::AdaptiveAvgPool2dFuncOptions &ar = torch::nn::functional::AdaptiveAvgPool2dFuncOptions({1, 1});
+            fout = torch::nn::functional::adaptive_avg_pool2d(fout, ar);
+            fout = torch::flatten(fout, 1);
             // libtorch classifier (with learning)
             auto output = classifier.sequ->forward(fout);
             auto loss = criterion(output, target);

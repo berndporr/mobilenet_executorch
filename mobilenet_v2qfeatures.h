@@ -114,9 +114,8 @@ public:
             torch::TensorOptions()
                 .dtype(torch::kFloat)
                 .device(torch::kCPU));
-        const torch::nn::functional::AdaptiveAvgPool2dFuncOptions &ar = torch::nn::functional::AdaptiveAvgPool2dFuncOptions({1, 1});
-        x = torch::nn::functional::adaptive_avg_pool2d(x, ar);
-        x = torch::flatten(x, 1);
+//        const torch::nn::functional::AdaptiveAvgPool2dFuncOptions &ar = torch::nn::functional::AdaptiveAvgPool2dFuncOptions({1, 1});
+//        x = torch::nn::functional::adaptive_avg_pool2d(x, ar);
         return x;
     }
 
