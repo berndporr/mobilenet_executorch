@@ -27,30 +27,19 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 
 include(GNUInstallDirs)
 
+find_package(executorch CONFIG REQUIRED)
+
 add_executable (transfer transfer.cpp)
 target_link_libraries(transfer ${TORCH_LIBRARIES} ${OpenCV_LIBRARIES}
     extension_tensor
     extension_module
-    extension_data_loader
     extension_flat_tensor
     executorch
-    executorch_core
 
-    # XNNPACK backend
-    # xnnpack_backend
-    "$<LINK_LIBRARY:WHOLE_ARCHIVE,xnnpack_backend>"
-
-    # XNNPACK dependencies
+    xnnpack_backend
     XNNPACK
-
     xnnpack-microkernels-prod
-
-    pthreadpool
-    extension_threadpool
 
     quantized_kernels
     quantized_ops_lib
-    kernels_util_all_deps
-    cpuinfo
-    extension_named_data_map
 )
